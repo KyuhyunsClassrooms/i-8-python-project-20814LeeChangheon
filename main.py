@@ -1,101 +1,126 @@
-# AI 활용 자유 주제 파이썬 미니 프로젝트
-# 이름 또는 학번: 
-# 프로젝트 주제: 
+import math
 
-# ============================================================
-# 사용 안내
-# ------------------------------------------------------------
-# 이 파일은 예시 골격입니다.
-# 그대로 제출하지 말고, 반드시 자신의 주제에 맞게 수정하세요.
-#
-# 필수 조건
-# 1. 2차원 리스트 사용
-# 2. 함수 2개 이상, 가능하면 3개 이상 분리
-# 3. 조건문 사용
-# 4. 반복문 사용
-# 5. 실행 결과 출력
-# ============================================================
+# 1. 데이터 클래스
+class Chip:
+    def __init__(self, x, y, thickness):
+        self.x = x
+        self.y = y
+        self.thickness = thickness
+        self.status = "UNKNOWN" 
 
+# 2. 메인 분석 클래스
+class WaferAnalyzer:
+    def __init__(self, grid_data):
+        self.wafer_grid = grid_data
+        self.size = len(grid_data)
+        self.center_x = self.size // 2
+        self.center_y = self.size // 2
+        self.total_chips = 0
+        self.normal_chips = 0
+        self.defect_chips = []
 
-# ------------------------------------------------------------
-# 1. 데이터 준비: 2차원 리스트
-# ------------------------------------------------------------
-# 아래 예시는 "활동 추천 프로그램"입니다.
-# 자신의 주제에 맞게 data를 만드세요.
-#
-# 현재 열의 의미:
-# 0번 열: 활동 이름
-# 1번 열: 필요한 시간(분)
-# 2번 열: 추천 기분
-# 3번 열: 활동 유형
-# ------------------------------------------------------------
+    def evaluate_chips(self, target, tolerance):
+        """이중 for문으로 모든 칩의 상태를 판정한다."""
+        for y in range(self.size):
+            for x in range(self.size):
+                chip = self.wafer_grid[y][x]
+                
+                if chip is None: # 빈 공간 제외
+                    continue
+                
+                self.total_chips += 1
+                
+                # 정상 범위 판정 (예: 97 ~ 103)
+                if abs(chip.thickness - target) <= tolerance:
+                    chip.status = "OK"
+                    self.normal_chips += 1
+                else:
+                    if chip.thickness < target - tolerance:
+                        chip.status = "OVER"  # 너무 많이 깎임 (-)
+                    else:
+                        chip.status = "UNDER" # 덜 깎임 (+)
+                    self.defect_chips.append(chip)
 
-activities = [
-    ["산책하기", 30, "피곤", "운동"],
-    ["짧은 낮잠", 20, "피곤", "휴식"],
-    ["좋아하는 음악 듣기", 10, "우울", "휴식"],
-    ["문제집 3쪽 풀기", 40, "차분", "공부"],
-    ["방 정리하기", 25, "답답", "생활"],
-    ["친구에게 연락하기", 15, "우울", "소통"],
-]
+    def analyze_pattern(self):
+        """불량 칩의 위치를 분석하여 패턴을 진단한다."""
+        print("\n[결함 패턴 진단]")
+        
+        if len(self.defect_chips) == 0:
+            print("모든 칩이 정상입니다!")
+            return
 
+        total_distance = 0
+        for chip in self.defect_chips:
+            # 중심점과의 거리 계산
+            distance = math.sqrt((chip.x - self.center_x)**2 + (chip.y - self.center_y)**2)
+            total_distance += distance
+        
+        avg_distance = total_distance / len(self.defect_chips)
+        
+        # 거리가 멀면 테두리 불량, 가까우면 가운데 불량
+        if avg_distance < 2.5:
+            print("-> 진단: '가운데(Center) 불량' 패턴입니다.")
+        else:
+            print("-> 진단: '테두리(Edge) 불량' 패턴입니다.")
 
-# ------------------------------------------------------------
-# 2. 함수 정의
-# ------------------------------------------------------------
-
-def show_intro():
-    """프로그램 제목과 안내를 출력한다."""
-    print("=" * 40)
-    print("AI 활용 자유 주제 파이썬 미니 프로젝트")
-    print("예시: 기분과 시간에 따른 활동 추천기")
-    print("=" * 40)
-
-
-def get_user_input():
-    """사용자에게 기분과 남은 시간을 입력받는다."""
-    mood = input("현재 기분을 입력하세요. 예: 피곤, 우울, 차분, 답답: ")
-    minutes = int(input("사용 가능한 시간을 분 단위로 입력하세요: "))
-    return mood, minutes
-
-
-def find_recommendations(data, mood, minutes):
-    """2차원 리스트를 반복하며 조건에 맞는 활동을 찾는다."""
-    results = []
-
-    for row in data:
-        name = row[0]
-        required_minutes = row[1]
-        recommended_mood = row[2]
-        activity_type = row[3]
-
-        # 조건문: 사용자의 기분과 시간이 활동 조건에 맞는지 판단한다.
-        if recommended_mood == mood and required_minutes <= minutes:
-            results.append([name, required_minutes, activity_type])
-
-    return results
-
-
-def print_result(results):
-    """추천 결과를 출력한다."""
-    print("\n[추천 결과]")
-
-    if len(results) == 0:
-        print("조건에 맞는 활동이 없습니다.")
-        print("시간을 늘리거나 다른 기분을 입력해 보세요.")
-    else:
-        for item in results:
-            print(f"- {item[0]} / {item[1]}분 / 유형: {item[2]}")
+    def print_map(self):
+        """웨이퍼 맵을 기호로 출력한다."""
+        print("\n[웨이퍼 맵 시각화]")
+        for y in range(self.size):
+            row_str = ""
+            for x in range(self.size):
+                chip = self.wafer_grid[y][x]
+                if chip is None:
+                    row_str += "[   ] "
+                elif chip.status == "OK":
+                    row_str += "[ O ] "
+                elif chip.status == "OVER":
+                    row_str += "[ - ] "
+                elif chip.status == "UNDER":
+                    row_str += "[ + ] "
+            print(row_str)
 
 
+# 3. 가짜 데이터 생성 함수
+def create_dummy_wafer():
+    raw_data = [
+        [0, 0, 0, 94, 93, 94, 0, 0, 0],
+        [0, 0, 96, 98, 99, 98, 96, 0, 0],
+        [0, 96, 100, 101, 100, 101, 96, 0, 0],
+        [94, 98, 101, 105, 106, 105, 101, 98, 94],
+        [93, 99, 100, 106, 108, 106, 100, 99, 93],
+        [94, 98, 101, 105, 106, 105, 101, 98, 94],
+        [0, 96, 100, 101, 100, 101, 96, 0, 0],
+        [0, 0, 96, 98, 99, 98, 96, 0, 0],
+        [0, 0, 0, 94, 93, 94, 0, 0, 0]
+    ]
+    
+    wafer_grid = []
+    for y in range(9):
+        row = []
+        for x in range(9):
+            if raw_data[y][x] == 0:
+                row.append(None)
+            else:
+                row.append(Chip(x, y, raw_data[y][x]))
+        wafer_grid.append(row)
+    return wafer_grid
+
+
+# 4. 메인 실행
 def main():
-    show_intro()
-    mood, minutes = get_user_input()
-    results = find_recommendations(activities, mood, minutes)
-    print_result(results)
+    print("=== 반도체 웨이퍼 식각 결함 진단기 ===")
+    wafer_grid = create_dummy_wafer()
+    analyzer = WaferAnalyzer(wafer_grid)
+    
+    target = float(input("목표 두께를 입력하세요 (예: 100): "))
+    tolerance = float(input("허용 오차를 입력하세요 (예: 3): "))
+    
+    analyzer.evaluate_chips(target, tolerance)
+    analyzer.print_map()
+    
+    print(f"\n[검사 결과] 총 {analyzer.total_chips}개 중 정상 {analyzer.normal_chips}개, 불량 {len(analyzer.defect_chips)}개")
+    analyzer.analyze_pattern()
 
-
-# ------------------------------------------------------------
-# 3. 프로그램 실행
-# ------------------------------------------------------------
-main()
+if __name__ == "__main__":
+    main()
