@@ -52,10 +52,10 @@ class WaferAnalyzer:
         total_distance = 0
         for chip in self.defect_chips:
             # 중심점과의 거리 계산
-            distance = math.sqrt((chip.x - self.center_x)**2 + (chip.y - self.center_y)**2)
-            total_distance += distance
+            distance = math.sqrt((chip.x - self.center_x)**2 + (chip.y - self.center_y)**2) #피타코라스 법칙을 이용하여 현재 불량칩과 웨이퍼 중심점 거리 측정
+            total_distance += distance #계산된 현재 불량 칩의 거리를 전체 누적 거리 변수에 더합니다.
         
-        avg_distance = total_distance / len(self.defect_chips)
+        avg_distance = total_distance / len(self.defect_chips) #불량 칩들의 중심 거리를 모두 더한 값을 불량 칩의 총 개수로 나누어 '불량 칩들의 평균 거리'를 구합니다.
         
         # 거리가 멀면 테두리 불량, 가까우면 가운데 불량
         if avg_distance < 2.5:
