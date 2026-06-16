@@ -98,10 +98,14 @@ def main():
     wafer_grid = create_wafer_data()
     size = len(wafer_grid)
     
-    # 2. 사용자 입력
-    # 사용자로부터 목표 두께와 허용 오차를 실수형(소수점 포함) 숫자로 입력받습니다.
-    target = float(input("목표 두께를 입력하세요 (예: 100): "))
-    tolerance = float(input("허용 오차를 입력하세요 (예: 3): "))
+# 2. 사용자 입력 및 예외 처리
+    # 사용자가 문자를 입력할 경우 프로그램이 멈추지 않도록 예외 처리(try-except)를 적용합니다.
+    try:
+        target = float(input("목표 두께를 입력하세요 (예: 100): "))
+        tolerance = float(input("허용 오차를 입력하세요 (예: 3): "))
+    except ValueError:
+        print("오류: 숫자만 입력해야 합니다. 프로그램을 종료합니다.")
+        return
     
     # 3. 검사 및 맵 출력
     total, normal, defects = print_and_evaluate_map(wafer_grid, target, tolerance)
