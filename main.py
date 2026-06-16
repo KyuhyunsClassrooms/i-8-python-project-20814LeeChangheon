@@ -1,89 +1,9 @@
-import math
-
-# 1. 데이터 클래스
-class Chip:
-    def __init__(self, x, y, thickness):
-        self.x = x
-        self.y = y
-        self.thickness = thickness
-        self.status = "UNKNOWN" 
-
-# 2. 메인 분석 클래스
-class WaferAnalyzer:
-    def __init__(self, grid_data):
-        self.wafer_grid = grid_data
-        self.size = len(grid_data)
-        self.center_x = self.size // 2
-        self.center_y = self.size // 2
-        self.total_chips = 0
-        self.normal_chips = 0
-        self.defect_chips = []
-
-    def evaluate_chips(self, target, tolerance):
-        """이중 for문으로 모든 칩의 상태를 판정한다."""
-        for y in range(self.size):
-            for x in range(self.size):
-                chip = self.wafer_grid[y][x]
-                
-                if chip is None: # 빈 공간 제외
-                    continue
-                
-                self.total_chips += 1
-                
-                # 정상 범위 판정 (예: 97 ~ 103)
-                if abs(chip.thickness - target) <= tolerance:
-                    chip.status = "OK"
-                    self.normal_chips += 1
-                else:
-                    if chip.thickness < target - tolerance:
-                        chip.status = "OVER"  # 너무 많이 깎임 (-)
-                    else:
-                        chip.status = "UNDER" # 덜 깎임 (+)
-                    self.defect_chips.append(chip)
-
-    def analyze_pattern(self):
-        """불량 칩의 위치를 분석하여 패턴을 진단한다."""
-        print("\n[결함 패턴 진단]")
-        
-        if len(self.defect_chips) == 0:
-            print("모든 칩이 정상입니다!")
-            return
-
-        total_distance = 0
-        for chip in self.defect_chips:
-            # 중심점과의 거리 계산
-            distance = math.sqrt((chip.x - self.center_x)**2 + (chip.y - self.center_y)**2) #피타코라스 법칙을 이용하여 현재 불량칩과 웨이퍼 중심점 거리 측정
-            total_distance += distance #계산된 현재 불량 칩의 거리를 전체 누적 거리 변수에 더합니다.
-        
-        avg_distance = total_distance / len(self.defect_chips) #불량 칩들의 중심 거리를 모두 더한 값을 불량 칩의 총 개수로 나누어 '불량 칩들의 평균 거리'를 구합니다.
-        
-        # 거리가 멀면 테두리 불량, 가까우면 가운데 불량
-        if avg_distance < 2.5:
-            print("-> 진단: '가운데(Center) 불량' 패턴입니다.")
-        else:
-            print("-> 진단: '테두리(Edge) 불량' 패턴입니다.")
-
-    def print_map(self):
-        """웨이퍼 맵을 기호로 출력한다."""
-        print("\n[웨이퍼 맵 시각화]")
-        for y in range(self.size):
-            row_str = ""
-            for x in range(self.size):
-                chip = self.wafer_grid[y][x]
-                if chip is None:
-                    row_str += "[   ] "
-                elif chip.status == "OK":
-                    row_str += "[ O ] "
-                elif chip.status == "OVER":
-                    row_str += "[ - ] "
-                elif chip.status == "UNDER":
-                    row_str += "[ + ] "
-            print(row_str)
-
-
-# 3. 가짜 데이터 생성 함수
-def create_dummy_wafer():
-    raw_data = [
+# 1. 데이터 생성 함수 (입력)
+def create_wafer_data(): 
+    """9x9 크기의 웨이퍼 2차원 리스트를 반환합니다. (0은 빈 공간, 숫자는 두께)"""
+    
+    # 웨이퍼의 둥근 형태를 표현하기 위해 모서리는 0(빈 공간)으로 두고, 나머지는 식각 두께 수치를 입력합니다.
+    wafer_grid = [
         [0, 0, 0, 94, 93, 94, 0, 0, 0],
         [0, 0, 96, 98, 99, 98, 96, 0, 0],
         [0, 96, 100, 101, 100, 101, 96, 0, 0],
@@ -94,33 +14,104 @@ def create_dummy_wafer():
         [0, 0, 96, 98, 99, 98, 96, 0, 0],
         [0, 0, 0, 94, 93, 94, 0, 0, 0]
     ]
+    # 생성된 2차원 리스트 데이터를 반환합니다.
+    return wafer_grid 
+
+# 2. 상태 판정 및 맵 출력 함수 (처리 및 출력)
+def print_and_evaluate_map(wafer, target, tolerance):
+    """웨이퍼를 검사하여 맵을 기호로 출력하고, 불량 칩의 좌표를 찾아냅니다."""
     
-    wafer_grid = []
-    for y in range(9):
-        row = []
-        for x in range(9):
-            if raw_data[y][x] == 0:
-                row.append(None)
+    # 웨이퍼의 가로/세로 길이를 구합니다 (여기서는 9).
+    size = len(wafer) 
+    total_chips = 0
+    normal_chips = 0
+    
+    # 불량으로 판정된 칩의 (x, y) 좌표를 저장할 빈 리스트를 준비합니다.
+    defect_chips = [] 
+
+    print("\n[웨이퍼 맵 시각화]")
+    
+    # 이중 for문을 사용하여 웨이퍼의 모든 Y좌표(행)와 X좌표(열)를 순차적으로 탐색합니다.
+    for y in range(size):
+        row_str = ""
+        for x in range(size):
+            # 현재 좌표(x, y)에 있는 칩의 식각 두께 값을 가져옵니다.
+            thickness = wafer[y][x] 
+            
+            # 두께가 0인 곳은 칩이 없는 빈 공간이므로 검사에서 제외하고 빈칸 기호를 출력합니다.
+            if thickness == 0: 
+                row_str += "[   ] "
             else:
-                row.append(Chip(x, y, raw_data[y][x]))
-        wafer_grid.append(row)
-    return wafer_grid
+                total_chips += 1
+                
+                # 칩의 두께와 목표 두께의 차이가 허용 오차 이내인지 확인하여 정상(OK) 판정을 내립니다.
+                if abs(thickness - target) <= tolerance: 
+                    row_str += "[ O ] "
+                    normal_chips += 1
+                elif thickness < target - tolerance:
+                    row_str += "[ - ] " # 너무 많이 깎인 불량 (OVER)
+                    
+                    # 불량 칩으로 판정되었으므로, 해당 칩의 좌표를 불량 리스트에 추가합니다.
+                    defect_chips.append((x, y)) 
+                else:
+                    row_str += "[ + ] " # 덜 깎인 불량 (UNDER)
+                    defect_chips.append((x, y)) # 불량 좌표 저장
+        print(row_str)
+        
+    return total_chips, normal_chips, defect_chips
 
+# 3. 결함 패턴 분석 함수 (처리 및 출력)
+def analyze_pattern(defect_chips, size):
+    """불량 칩의 위치를 분석하여 패턴을 진단합니다."""
+    print("\n[결함 패턴 진단]")
+    
+    if len(defect_chips) == 0:
+        print("모든 칩이 정상입니다!")
+        return
 
-# 4. 메인 실행
+    # 웨이퍼의 정중앙 좌표를 구합니다 (9x9의 경우 중심은 4, 4).
+    center_x = size // 2 
+    center_y = size // 2
+    total_distance = 0
+    
+    # 저장해둔 불량 칩들의 좌표를 하나씩 꺼내서 중심점과의 거리를 계산합니다.
+    for x, y in defect_chips:
+        # 피타고라스의 정리를 이용하여 현재 불량 칩과 웨이퍼 중심점 사이의 직선 거리를 측정합니다.
+        # (** 0.5 는 파이썬에서 루트(제곱근)를 계산하는 방식입니다.)
+        distance = ((x - center_x)**2 + (y - center_y)**2) ** 0.5
+        total_distance += distance
+        
+    # 계산된 거리들을 모두 더한 후 불량 칩의 개수로 나누어 '평균 거리'를 구합니다.
+    avg_distance = total_distance / len(defect_chips)
+    
+    # 평균 거리가 짧으면 가운데 쪽에 불량이 몰려있고, 멀면 테두리 쪽에 불량이 몰려있다고 진단합니다.
+    if avg_distance < 2.5:
+        print("-> 진단: '가운데(Center) 불량' 패턴입니다.")
+    else:
+        print("-> 진단: '테두리(Edge) 불량' 패턴입니다.")
+
+# 4. 메인 실행 함수
 def main():
     print("=== 반도체 웨이퍼 식각 결함 진단기 ===")
-    wafer_grid = create_dummy_wafer()
-    analyzer = WaferAnalyzer(wafer_grid)
     
+    # 1. 데이터 준비
+    wafer_grid = create_wafer_data()
+    size = len(wafer_grid)
+    
+    # 2. 사용자 입력
+    # 사용자로부터 목표 두께와 허용 오차를 실수형(소수점 포함) 숫자로 입력받습니다.
     target = float(input("목표 두께를 입력하세요 (예: 100): "))
     tolerance = float(input("허용 오차를 입력하세요 (예: 3): "))
     
-    analyzer.evaluate_chips(target, tolerance)
-    analyzer.print_map()
+    # 3. 검사 및 맵 출력
+    total, normal, defects = print_and_evaluate_map(wafer_grid, target, tolerance)
     
-    print(f"\n[검사 결과] 총 {analyzer.total_chips}개 중 정상 {analyzer.normal_chips}개, 불량 {len(analyzer.defect_chips)}개")
-    analyzer.analyze_pattern()
+    # 4. 결과 요약 및 패턴 분석
+    # 전체 검사 결과를 요약하여 출력합니다.
+    print(f"\n[검사 결과] 총 {total}개 중 정상 {normal}개, 불량 {len(defects)}개")
+    analyze_pattern(defects, size)
 
+# 프로그램 시작점
+# 프로그램이 직접 실행될 때만 main() 함수를 호출하여 작동을 시작합니다.
 if __name__ == "__main__":
     main()
