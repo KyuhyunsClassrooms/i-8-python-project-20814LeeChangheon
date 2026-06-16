@@ -45,7 +45,7 @@ def print_and_evaluate_map(wafer, target, tolerance):
                 total_chips += 1
                 
                 # 칩의 두께와 목표 두께의 차이가 허용 오차 이내인지 확인하여 정상(OK) 판정을 내립니다.
-                if abs(thickness - target) <= tolerance: 
+                if abs(thickness - target) <= tolerance: #abs는 절댓값
                     row_str += "[ O ] "
                     normal_chips += 1
                 elif thickness < target - tolerance:
